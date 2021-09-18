@@ -146,6 +146,19 @@ export class PlaygroundCodeEditor extends LitElement {
     this.requestUpdate('value', oldValue);
   }
 
+
+  get position() {
+    const cursor = this._codemirror?.getCursor();
+    if (!cursor) return -1;
+    return this._codemirror?.indexFromPos(cursor) ?? -1;
+  }
+
+  get wordAtPosition() {
+    const word = this._codemirror?.findWordAt(this._codemirror.getCursor());
+    if (!word) return "";
+    return this._codemirror?.getRange(word?.anchor, word?.head) ?? "";
+  }
+
   /**
    * The type of the file being edited, as represented by its usual file
    * extension.
@@ -240,6 +253,9 @@ export class PlaygroundCodeEditor extends LitElement {
             break;
           case 'diagnostics':
             this._showDiagnostics();
+            break;
+          case 'position':
+          case 'wordAtPosition':
             break;
           default:
             unreachable(prop);

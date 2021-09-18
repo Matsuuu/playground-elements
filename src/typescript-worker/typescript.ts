@@ -10,9 +10,9 @@ import {ImportMapResolver} from './import-map-resolver.js';
 
 import type * as lsp from 'vscode-languageserver';
 import type {SampleFile, BuildOutput} from '../shared/worker-api.js';
-import type {PackageJson} from './util.js';
+import {fuzzysearch, PackageJson} from './util.js';
 import type {CachingCdn} from './caching-cdn.js';
-import {LanguageService} from 'typescript';
+import {LanguageService } from 'typescript';
 
 const compilerOptions = {
   target: ts.ScriptTarget.ES2017,
@@ -50,6 +50,18 @@ export class TypeScriptBuilder {
     this._cdn = cdn;
     this._importMapResolver = importMapResolver;
   }
+
+  getCompletionInfo(fileName: string, position: number, wordAtPosition: string) {
+    const completionInfo = this._languageService.getCompletionsAtPosition(fileName, position - 1, undefined);
+    this._languageService.getCompletionEntrySymbol
+    const entries = completionInfo?.entries;
+    
+    if (entries) {
+      const matchingEntries = entries.filter(entry => fuzzysearch(wordAtPosition, entry.name));
+      return matchingEntries
+    }
+    return [];
+}
 
   async *process(
     results: AsyncIterable<BuildOutput> | Iterable<BuildOutput>
@@ -144,7 +156,6 @@ export class TypeScriptBuilder {
       for (const tsDiagnostic of this._languageService.getSemanticDiagnostics(
         url
       )) {
-        console.log('Tsdiagnostic', tsDiagnostic);
         yield {
           kind: 'diagnostic',
           filename: file.name,

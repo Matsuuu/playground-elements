@@ -584,13 +584,38 @@ export class PlaygroundProject extends LitElement {
     return true;
   }
 
-  editFile(file: SampleFile, newContent: string) {
+  editFile(
+    file: SampleFile,
+    newContent: string,
+    cursorPosition: number,
+    wordAtPosition: string
+  ) {
     // Note this method takes the file object itself rather than the name like
     // add/delete/rename, because edits happen at high frequency so we don't
     // want to be doing any searches.
     file.content = newContent;
     this._modified = undefined;
     this.saveDebounced();
+
+    if (wordAtPosition.length > 0) {
+      this.doCompletion(file, cursorPosition, wordAtPosition);
+    }
+  }
+
+  async doCompletion(
+    file: SampleFile,
+    cursorPosition: number,
+    wordAtPosition: string
+  ) {
+    const workerApi = await this._deferredTypeScriptWorkerApi.promise;
+    const entries = await workerApi.getCompletionInfo(
+      file.name,
+      {importMap: this._importMap},
+      cursorPosition,
+      wordAtPosition
+    );
+    console.log(wordAtPosition);
+    console.table(entries.slice(0, 5));
   }
 
   addFile(name: string) {

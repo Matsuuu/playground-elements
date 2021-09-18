@@ -175,7 +175,9 @@ export class PlaygroundFileEditor extends PlaygroundConnectedElement {
     ) {
       return;
     }
-    this._project.editFile(this._currentFile, this._editor.value);
+    const cursorPosition = this._editor.position;
+    const wordAtPosition = this._editor.wordAtPosition;
+    this._project.editFile(this._currentFile, this._editor.value, cursorPosition, wordAtPosition);
   }
 }
 

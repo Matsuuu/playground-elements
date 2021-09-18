@@ -5,6 +5,7 @@
  */
 
 import type {Diagnostic} from 'vscode-languageserver';
+import { CompletionEntry } from "typescript";
 
 /**
  * Sent from the project to the proxy, with configuration and a port for further
@@ -81,6 +82,15 @@ export interface TypeScriptWorkerAPI {
     },
     emit: (result: BuildOutput) => void
   ): Promise<void>;
+  getCompletionInfo(
+    fileName: string,
+    config: {
+      importMap: ModuleImportMap;
+      cdnBaseUrl?: string;
+    },
+    position: number,
+    wordAtPosition: string
+  ): CompletionEntry[];
 }
 
 export interface HttpError {
