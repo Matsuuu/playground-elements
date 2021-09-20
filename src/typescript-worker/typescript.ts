@@ -12,7 +12,7 @@ import type * as lsp from 'vscode-languageserver';
 import type {SampleFile, BuildOutput} from '../shared/worker-api.js';
 import {fuzzysearch, PackageJson} from './util.js';
 import type {CachingCdn} from './caching-cdn.js';
-import {LanguageService } from 'typescript';
+import {LanguageService} from 'typescript';
 
 const compilerOptions = {
   target: ts.ScriptTarget.ES2017,
@@ -38,10 +38,12 @@ export class TypeScriptBuilder {
   private readonly _cdn: CachingCdn;
   private readonly _importMapResolver: ImportMapResolver;
 
-  private readonly _languageServiceHost: WorkerLanguageServiceHost =
-    new WorkerLanguageServiceHost(self.origin, compilerOptions);
+  private readonly _languageServiceHost = new WorkerLanguageServiceHost(
+    self.origin,
+    compilerOptions
+  );
 
-  private _languageService: LanguageService = ts.createLanguageService(
+  private readonly _languageService = ts.createLanguageService(
     this._languageServiceHost,
     ts.createDocumentRegistry()
   );
@@ -51,17 +53,27 @@ export class TypeScriptBuilder {
     this._importMapResolver = importMapResolver;
   }
 
-  getCompletionInfo(fileName: string, position: number, wordAtPosition: string) {
-    const completionInfo = this._languageService.getCompletionsAtPosition(fileName, position - 1, undefined);
-    this._languageService.getCompletionEntrySymbol
+  getCompletionInfo(
+    fileName: string,
+    position: number,
+    wordAtPosition: string
+  ) {
+    const completionInfo = this._languageService.getCompletionsAtPosition(
+      fileName,
+      position - 1,
+      undefined
+    );
+    this._languageService.getCompletionEntrySymbol;
     const entries = completionInfo?.entries;
-    
+
     if (entries) {
-      const matchingEntries = entries.filter(entry => fuzzysearch(wordAtPosition, entry.name));
-      return matchingEntries
+      const matchingEntries = entries.filter((entry) =>
+        fuzzysearch(wordAtPosition, entry.name)
+      );
+      return matchingEntries;
     }
     return [];
-}
+  }
 
   async *process(
     results: AsyncIterable<BuildOutput> | Iterable<BuildOutput>
@@ -148,9 +160,7 @@ export class TypeScriptBuilder {
       // TypeScript is going to look for these files as paths relative to our
       // source files, so we need to add them to our filesystem with those URLs.
       const url = new URL(`node_modules/${path}`, self.origin).href;
-      if (!this._languageServiceHost?.fileExists(url)) {
-        this._languageServiceHost?.addFile(url, {content, version: 0});
-      }
+      this._languageServiceHost.updateFileContentIfNeeded(url, content);
     }
     for (const {file, url} of inputFiles) {
       for (const tsDiagnostic of this._languageService.getSemanticDiagnostics(
@@ -174,16 +184,11 @@ interface VersionedFile {
 class WorkerLanguageServiceHost implements ts.LanguageServiceHost {
   readonly compilerOptions: ts.CompilerOptions;
   readonly packageRoot: string;
-  readonly files: Map<string, VersionedFile>;
+  readonly files: Map<string, VersionedFile> = new Map<string, VersionedFile>();
 
-  constructor(
-    packageRoot: string,
-    compilerOptions: ts.CompilerOptions,
-    files?: Map<string, VersionedFile>
-  ) {
+  constructor(packageRoot: string, compilerOptions: ts.CompilerOptions) {
     this.packageRoot = packageRoot;
     this.compilerOptions = compilerOptions;
-    this.files = files || new Map();
   }
 
   /*
@@ -197,11 +202,11 @@ class WorkerLanguageServiceHost implements ts.LanguageServiceHost {
    */
   updateFileContentIfNeeded(fileName: string, content: string) {
     const file = this.files.get(fileName);
-    if (file && this._fileContentHasUpdated(file, content)) {
+    if (file && file.content !== content) {
       file.content = content;
       file.version += 1;
     } else {
-      this.addFile(fileName, {content, version: 0});
+      this.files.set(fileName, {content, version: 0});
     }
   }
 
@@ -215,33 +220,15 @@ class WorkerLanguageServiceHost implements ts.LanguageServiceHost {
     files.forEach((file, fileName) =>
       this.updateFileContentIfNeeded(fileName, file)
     );
-    this.removeDeletedFiles(files);
+    this._removeDeletedFiles(files);
   }
 
-  removeDeletedFiles(files: Map<string, string>) {
+  private _removeDeletedFiles(files: Map<string, string>) {
     this.getScriptFileNames().forEach((fileName) => {
       if (!files.has(fileName)) {
-        this.removeFile(fileName);
+        this.files.delete(fileName);
       }
     });
-  }
-
-  addFile(fileName: string, file: VersionedFile) {
-    this.files.set(fileName, file);
-  }
-
-  addFiles(files: Map<string, VersionedFile>) {
-    files.forEach((file, fileName) => {
-      this.files.set(fileName, file);
-    });
-  }
-
-  removeFile(fileName: string) {
-    this.files.delete(fileName);
-  }
-
-  _fileContentHasUpdated(oldFile: VersionedFile, newContent: string) {
-    return oldFile?.content !== newContent;
   }
 
   getCompilationSettings(): ts.CompilerOptions {
