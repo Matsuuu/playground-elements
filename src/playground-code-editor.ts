@@ -10,6 +10,7 @@ import {ifDefined} from 'lit/directives/if-defined.js';
 import {CodeMirror} from './internal/codemirror.js';
 import playgroundStyles from './playground-styles.js';
 import type {Diagnostic} from 'vscode-languageserver';
+import type {Position, Token} from 'codemirror';
 
 // TODO(aomarks) Could we upstream this to lit-element? It adds much stricter
 // types to the ChangedProperties type.
@@ -20,6 +21,11 @@ interface TypedMap<T> extends Map<keyof T, unknown> {
   keys(): IterableIterator<keyof T>;
   values(): IterableIterator<T[keyof T]>;
   entries(): IterableIterator<{[K in keyof T]: [K, T[K]]}[keyof T]>;
+}
+
+export interface CodeEditorCursorPosition {
+  position: Position;
+  index: number;
 }
 
 const unreachable = (n: never) => n;
@@ -270,6 +276,10 @@ export class PlaygroundCodeEditor extends LitElement {
           case 'diagnostics':
             this._showDiagnostics();
             break;
+          case 'cursorPosition':
+            break;
+          case 'tokenUnderCursor':
+            break;
           default:
             unreachable(prop);
         }
@@ -337,6 +347,25 @@ export class PlaygroundCodeEditor extends LitElement {
     this._resizeObserver?.disconnect();
     this._resizeObserver = undefined;
     super.disconnectedCallback();
+  }
+
+  public get cursorPosition(): CodeEditorCursorPosition | null {
+    const cm = this._codemirror;
+    if (!cm) return null;
+
+    const cursorPos = cm.getCursor('start');
+    return {
+      position: cursorPos,
+      index: cm.indexFromPos(cursorPos),
+    };
+  }
+
+  public get tokenUnderCursor(): Token | null {
+    const cm = this._codemirror;
+    if (!cm) return null;
+
+    const cursorPos = cm.getCursor('start');
+    return cm.getTokenAt(cursorPos);
   }
 
   private _createView() {
@@ -430,14 +459,17 @@ export class PlaygroundCodeEditor extends LitElement {
     if (!this._codemirror || (this.type !== 'js' && this.type !== 'ts')) return;
 
     const cm = this._codemirror;
-    const cursorPos = cm.getCursor("start");
+    const cursorPos = cm.getCursor('start');
     const tokenAt = cm.getTokenAt(cursorPos);
+    const cursorIndexPos = cm.indexFromPos(cursorPos);
+    console.log(cursorIndexPos);
 
     if (tokenAt.string.length < 3) return;
 
     this._codemirror.showHint({
-    // @ts-ignore TODO get the typing fixed for hints ? Maybe no need if tsserver provides em
-      hint: CodeMirror.hint.javascript,
+      // @ts-ignore TODO get the typing fixed for hints ? Maybe no need if tsserver provides em
+      //hint: CodeMirror.hint.javascript,
+      words: ['Foo', 'Bar', 'baz'],
       completeSingle: false,
       container: this._focusContainer,
     });

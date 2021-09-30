@@ -77,11 +77,21 @@ export interface WorkerConfig {
   cdnBaseUrl?: string;
 }
 
+export interface CodeCompletionOptions {
+  fileName: string;
+  position: number;
+}
+
 export interface WorkerAPI {
   compileProject(
     files: Array<SampleFile>,
     config: WorkerConfig,
     emit: (result: BuildOutput) => void
+  ): Promise<void>;
+  getCompletions(
+    config: WorkerConfig,
+    completionOptions: CodeCompletionOptions,
+    emit: (completions: any) => void
   ): Promise<void>;
 }
 
