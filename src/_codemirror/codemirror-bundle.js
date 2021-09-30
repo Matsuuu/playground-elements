@@ -8,6 +8,10 @@ import 'codemirror/addon/fold/foldcode.js';
 // https://github.com/codemirror/grammar-mode (i.e. the google_modes).
 import 'codemirror-grammar-mode/src/mode.js';
 
+// Completion
+import 'codemirror/addon/hint/show-hint.js';
+import 'codemirror/addon/hint/javascript-hint.js';
+
 // These versions of the JavaScript and TypeScript modes add support for nested
 // HTML-in-JS syntax highlighting, so we prefer these to the stock ones.
 import 'google_modes/dist/javascript.js';

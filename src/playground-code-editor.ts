@@ -116,6 +116,43 @@ export class PlaygroundCodeEditor extends LitElement {
         border: 1px solid var(--playground-code-linenumber-color, #ccc);
         padding: 5px;
       }
+
+      .CodeMirror-hints {
+        position: absolute;
+        z-index: 10;
+        overflow: hidden;
+        list-style: none;
+
+        margin: 0;
+        padding: 2px;
+
+        -webkit-box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.2);
+        -moz-box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.2);
+        box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+        border: 1px solid silver;
+
+        background: white;
+        font-size: 90%;
+        font-family: monospace;
+
+        max-height: 20em;
+        overflow-y: auto;
+      }
+
+      .CodeMirror-hint {
+        margin: 0;
+        padding: 0 4px;
+        border-radius: 2px;
+        white-space: pre;
+        color: black;
+        cursor: pointer;
+      }
+
+      li.CodeMirror-hint-active {
+        background: #08f;
+        color: white;
+      }
     `,
     playgroundStyles,
   ];
@@ -352,6 +389,7 @@ export class PlaygroundCodeEditor extends LitElement {
         this._showDiagnostics();
       } else {
         // Change event is only for user input.
+        this._showCompletionItems();
         this.dispatchEvent(new Event('change'));
       }
     });
@@ -386,6 +424,23 @@ export class PlaygroundCodeEditor extends LitElement {
       // user can tab to move focus entirely elsewhere.
       this._focusContainer?.focus();
     }
+  }
+
+  private async _showCompletionItems() {
+    if (!this._codemirror || (this.type !== 'js' && this.type !== 'ts')) return;
+
+    const cm = this._codemirror;
+    const cursorPos = cm.getCursor("start");
+    const tokenAt = cm.getTokenAt(cursorPos);
+
+    if (tokenAt.string.length < 3) return;
+
+    this._codemirror.showHint({
+    // @ts-ignore TODO get the typing fixed for hints ? Maybe no need if tsserver provides em
+      hint: CodeMirror.hint.javascript,
+      completeSingle: false,
+      container: this._focusContainer,
+    });
   }
 
   /**
